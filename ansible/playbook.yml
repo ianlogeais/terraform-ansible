@@ -1,0 +1,64 @@
+- name: Configure frontend
+  hosts: frontend
+  tasks:
+    - name: Install nginx
+      become: true
+      become_user: root
+      ansible.builtin.yum:
+        name:
+          - nginx
+        state: present
+
+- name: Configure backend
+  hosts: backend
+  tasks:
+    - name: Install node
+      become: true
+      become_user: root
+      ansible.builtin.yum:
+        name:
+          - nodejs20
+          - npm
+        state: present
+    - name: create folder
+      command:
+        chdir: /home/ec2-user
+        cmd: mkdir -p app
+    - name: unpack the nodejs file
+      unarchive:
+        src: FCS-Webservice.tar
+        dest: /home/ec2-user/app
+    - name: Install dependencies
+      npm:
+        path: /home/ec2-user/app
+    - name: build app
+      command:
+        chdir: /home/ec2-user/app
+        cmd: npm run build
+    - name: Start the application
+      command:
+        chdir: /home/ec2-user/app
+        cmd: npm run start:prod
+      async: 1000
+      poll: 0
+
+- name: Configure database
+  hosts: databases
+  tasks:
+    - name: Install docker
+      become: true
+      become_user: root
+      ansible.builtin.yum:
+        name:
+          - docker
+        state: present
+
+#- name: My first play
+#  hosts: fcs
+#  tasks:
+#    - name: Ping my hosts
+#      ansible.builtin.ping:
+#
+#    - name: Print message
+#      ansible.builtin.debug:
+#        msg: Hello world

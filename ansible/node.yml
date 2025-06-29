@@ -1,0 +1,17 @@
+- name: Install Node.js 22.14.0 
+  hosts: fcs_backend
+  become: yes
+  tasks:
+
+    - name: Récupération du nodesource
+      shell: |
+        curl -fsSL https://rpm.nodesource.com/setup_22.14.0 | bash -
+      args:
+        executable: /bin/bash
+
+    - name: Install Node.js
+      dnf:
+        name: nodejs
+        state: present
+        update_cache: yes
+

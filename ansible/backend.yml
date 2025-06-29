@@ -1,0 +1,123 @@
+- hosts: all
+  vars:
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+  tasks: []
+
+- hosts: database
+  become: yes
+  vars:
+    mongodb_db: fake_cloud_society
+    mongodb_user: fcs_user
+    mongodb_password: fcs_password
+    mongodb_container_name: mongodb
+    mongodb_image: mongodb/mongodb-community-server:latest
+    mongodb_port: 27017
+  tasks:
+    - name: Installer les dépendances pour Docker
+      yum:
+        name:
+          - yum-utils
+          - device-mapper-persistent-data
+          - lvm2
+          - curl
+        state: present
+
+    - name: Ajouter le dépôt Docker
+      shell: |
+        amazon-linux-extras enable docker
+        yum clean metadata
+        yum install -y docker
+
+    - name: Démarrer et activer Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Lancer le container MongoDB avec port exposé
+      docker_container:
+        name: "{{ mongodb_container_name }}"
+        image: "{{ mongodb_image }}"
+        state: started
+        restart_policy: always
+        ports:
+          - "{{ mongodb_port }}:27017"
+        env:
+          MONGO_INITDB_ROOT_USERNAME: "{{ mongodb_user }}"
+          MONGO_INITDB_ROOT_PASSWORD: "{{ mongodb_password }}"
+          MONGO_INITDB_DATABASE: "{{ mongodb_db }}"
+
+- hosts: backend
+  become: yes
+  vars:
+    node_version: "22.14.0"
+    app_dir: "/opt/FCS-Webservice"
+  tasks:
+    - name: Installer dépendances
+      yum:
+        name:
+          - curl
+          - git
+          - gcc
+          - gcc-c++
+          - make
+        state: present
+
+    - name: Télécharger nvm (Node Version Manager)
+      shell: |
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+      args:
+        creates: /root/.nvm
+
+    - name: Charger nvm et installer Node.js {{ node_version }}
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        source "$NVM_DIR/nvm.sh"
+        nvm install {{ node_version }}
+        nvm alias default {{ node_version }}
+      environment:
+        NVM_DIR: "/root/.nvm"
+      args:
+        executable: /bin/bash
+
+    - name: Cloner le dépôt FCS-Webservice
+      git:
+        repo: https://github.com/Fake-Cloud-Society/FCS-Webservice.git
+        dest: "{{ app_dir }}"
+        force: yes
+
+    - name: Créer le fichier .env
+      copy:
+        dest: "{{ app_dir }}/.env"
+        content: |
+          MONGODB_URI=mongodb://16.171.155.19:27017/fake_cloud_society
+          JWT_SECRET=myawesomesecret
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Installer les dépendances avec npm
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        source "$NVM_DIR/nvm.sh"
+        cd {{ app_dir }}
+        npm install
+      args:
+        chdir: "{{ app_dir }}"
+        executable: /bin/bash
+
+- name: Installer et démarrer NGINX sur frontend
+  hosts: frontend
+  become: yes
+  tasks:
+    - name: Installer nginx
+      yum:
+        name: nginx
+        state: present
+
+    - name: Démarrer nginx
+      systemd:
+        name: nginx
+        state: started
+        enabled: yes
+

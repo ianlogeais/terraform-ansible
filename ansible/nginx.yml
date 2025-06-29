@@ -1,0 +1,20 @@
+- name: Install nginx
+  hosts: fcs_frontend
+  become: yes
+
+  tasks:
+    - name: Update du package cache
+      dnf:
+        update_cache: yes
+
+    - name: Install de nginx
+      dnf:
+        name: nginx
+        state: present
+
+    - name: Start et enbable de nginx
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+

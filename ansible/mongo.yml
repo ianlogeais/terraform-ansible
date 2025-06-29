@@ -1,0 +1,32 @@
+- name: Install mongo
+  hosts: fcs_database
+  become: yes
+  tasks:
+
+    - name: Ajout du repo
+      copy:
+        dest: /etc/yum.repos.d/mongodb-org-8.0.repo
+        content: |
+                 [mongodb-org-8.0]
+                 name=MongoDB Repository
+                 baseurl=https://repo.mongodb.org/yum/amazon/2023/mongodb-org/8.0/x86_64/
+                 gpgcheck=1
+                 enabled=1
+                 gpgkey=https://pgp.mongodb.com/server-8.0.asc
+
+    - name: Mise à jour des paquets
+      dnf:
+        name: "*"
+        state: latest
+                 
+    - name: Installation du package mongodb-org
+      dnf:
+        name: mongodb-org
+        state: present
+
+    - name: Activer et démarrer le service mongod
+      service:
+        name: mongod
+        state: started
+        enabled: yes
+

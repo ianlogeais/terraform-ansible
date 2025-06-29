@@ -1,0 +1,10 @@
+- name: Update des paquets
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Update des paquets avec dnf pour amazon linux
+      dnf:
+        name: "*"
+        state: latest
+

@@ -1,0 +1,10 @@
+---
+
+- name: Ping des machines EC2
+  hosts: all
+  gather_facts: no
+
+  tasks:
+    - name: Ping des machines EC2
+      ping:
+

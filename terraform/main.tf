@@ -10,8 +10,8 @@ terraform {
 
 provider "aws" {
   region     = "eu-north-1"
-  access_key = "AKIA3IXRDBYPKMM3WCTN"
-  secret_key = "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"
+  access_key = ""
+  secret_key = ""
 }
 
 resource "aws_instance" "fcs_frontend" {
